@@ -1,9 +1,11 @@
 from __future__ import print_function
 
-# import cv2
+import os
+import cv2
 import sys
 sys.path.insert(0, 'src')
 
+import warnings
 import transform
 import scipy.misc
 import numpy as np
@@ -11,6 +13,9 @@ import tensorflow as tf
 from utils import save_img, get_img
 from skimage.transform import resize
 import matplotlib.pyplot as plt
+
+# Disable tensorflow debugging information
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 def transfer(img, style_ckpt):
   g = tf.Graph()
@@ -24,13 +29,15 @@ def transfer(img, style_ckpt):
     mx, my = h/2, w/2
 
     if float(w) / float(h) < 2:
-      h = w/2
+      h = w / 2
       img = img[mx-h/2:mx+h/2, :, :]
-      img = resize(img, (400, 800))
 
     else:
       w = 2 * h
       img = img[:, my-w/2:my+w/2, :]
+
+    with warnings.catch_warnings():
+      warnings.simplefilter("ignore")
       img = resize(img, (400, 800))
 
     # Build inference network
@@ -52,6 +59,7 @@ def transfer(img, style_ckpt):
 #
 # After the person leaves, then have the option of resetting
 if __name__ == '__main__':
+  os.system('clear')
   print('Source image:')
   print('  [1] Choose from examples')
   print('  [2] Take your own!')
@@ -76,10 +84,11 @@ if __name__ == '__main__':
     print('\nTaking a picture with the webcam')
 
     cam = cv2.VideoCapture(0)
+    cam.set(3, 1280)
+    cam.set(4, 720)
     cv2.namedWindow('camera')
 
     while True:
-      print('test')
       ret, frame = cam.read()
       cv2.imshow('camera', frame)
       if not ret:
@@ -88,37 +97,47 @@ if __name__ == '__main__':
 
       # Space is pressed
       if k % 256 == 32:
-        img_fname = 'examples/user_image.png'
-        cv2.imwrite(img_name, frame)
+        cv2.imwrite('examples/user_image.png', frame)
+        img = get_img('examples/user_image.png')
         print('Picture taken!')
         break
 
-      cam.release()
-      cv2.destroyAllWindows()
+    cam.release()
+    cv2.destroyAllWindows()
 
-  print('\nSource style')
-  print('  [1] La Muse')
-  print('  [2] Rain Princess')
-  print('  [3] The Scream')
-  print('  [4] The Shipwreck of the Minotaur')
-  print('  [5] Udnie')
-  print('  [6] Wave')
-  style_idx = int(input('Selection: '))
+  plt.figure(figsize=(10,6))
+  while True:
+    os.system('clear')
+    print('Source style')
+    print('  [1] La Muse')
+    print('  [2] Rain Princess')
+    print('  [3] The Scream')
+    print('  [4] The Shipwreck of the Minotaur')
+    print('  [5] Udnie')
+    print('  [6] Wave')
+    style_idx = int(input('Selection: '))
 
-  style_dict = {
-    1: 'ckpts/la_muse.ckpt',
-    2: 'ckpts/rain_princess.ckpt',
-    3: 'ckpts/scream.ckpt',
-    4: 'ckpts/wreck.ckpt',
-    5: 'ckpts/udnie.ckpt',
-    6: 'ckpts/wave.ckpt',
-  }
-  style_ckpt = style_dict[style_idx]
+    # Quit if we enter 0
+    if style_idx == 0:
+      break
 
-  styled_img = transfer(img, style_ckpt)[0]
-  styled_img = np.clip(styled_img, 0, 255).astype(np.uint8)
+    style_dict = {
+      1: 'ckpts/la_muse.ckpt',
+      2: 'ckpts/rain_princess.ckpt',
+      3: 'ckpts/scream.ckpt',
+      4: 'ckpts/wreck.ckpt',
+      5: 'ckpts/udnie.ckpt',
+      6: 'ckpts/wave.ckpt',
+    }
+    style_ckpt = style_dict[style_idx]
 
-  plt.imshow(styled_img)
-  plt.axis('off')
-  plt.tight_layout()
-  plt.show()
+    styled_img = transfer(img, style_ckpt)[0]
+    styled_img = np.clip(styled_img, 0, 255).astype(np.uint8)
+
+    plt.clf()
+    plt.imshow(styled_img)
+    plt.axis('off')
+    plt.tight_layout()
+
+    plt.show(block=False)
+    plt.pause(0.001)
