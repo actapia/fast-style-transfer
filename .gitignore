@@ -106,3 +106,7 @@ checkpoint
 
 .DS_Store
 ckpts/
+
+# credentials
+token.pickle
+credentials.json

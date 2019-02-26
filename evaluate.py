@@ -1,7 +1,7 @@
 from __future__ import print_function
 
 import os
-import cv2
+# import cv2
 import sys
 sys.path.insert(0, 'src')
 
