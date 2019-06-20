@@ -23,6 +23,8 @@ import time
 
 from screeninfo import get_monitors
 
+user_image_path = 'examples/user_image.png'
+
 # class CallInQTMainLoop(QtCore.QObject):
     # signal = QtCore.pyqtSignal()
 
@@ -102,9 +104,11 @@ def transfer(img, style_ckpt):
       w = 2 * h
       img = img[:, my-w//2:my+w//2, :]
 
-    with warnings.catch_warnings():
-      warnings.simplefilter("ignore")
-      img = resize(img, (400, 800))
+    # with warnings.catch_warnings():
+      # warnings.simplefilter("ignore")
+      # # img = resize(img, (400, 800))
+      
+    # print(img.shape)
 
     # Build inference network
     img = np.reshape(img, (1,) + img.shape)
@@ -122,7 +126,6 @@ def transfer(img, style_ckpt):
   
  
 def show_image(styled_img):
-    print("show")
     plt.ion()
     plt.clf()
     #plt.pause(0.001)
@@ -137,10 +140,16 @@ def show_image(styled_img):
     f.canvas.manager.window.move(monitors[-1].x, 0)
     f.canvas.manager.window.showMaximized()
     plt.show(block=True)
+    
 
 def clear_screen():
     pass
     # subprocess.call(["powershell.exe","Clear-Host"],shell=True)
+    
+def show_options(options, first=1, prompt="Selection: "):
+    for index, option in enumerate(options):
+        print("  [{0}] {1}".format(index+first, option))
+    return int(input(prompt))
 
 # After each image, have the option of saving the image for email later.
 # Also have the option to do a different style
@@ -149,26 +158,18 @@ def clear_screen():
 if __name__ == '__main__':
   #os.system('clear')
   clear_screen()
+  img = None
   print('Source image:')
-  print('  [1] Choose from examples')
-  print('  [2] Take your own!')
-  source = int(input('Selection: '))
+  source = show_options(["Choose from examples","Take your own","Load from file","Load last image from webcam"])
 
   if source == 1:
     print('\nChoose from examples:')
-    print('  [1] Chicago')
-    print('  [2] Modern Building')
-    example_idx = int(input('Selection: '))
-
-    example_dict = {
-      1: 'examples/content/chicago.jpg',
-      2: 'examples/content/stata.jpg',
-      3: 'examples/content/uk.jpg',
-      4: 'examples/content/basketball.jpg',
-    }
-    img_fname = example_dict[example_idx]
-    img = get_img(img_fname)
-
+    example_idx = show_options(["Chicago","Modern Building"])
+    if example_idx != 0:
+        example_images = ['examples/content/chicago.jpg',
+        'examples/content/stata.jpg']
+        img_fname = example_images[example_idx-1]
+        img = get_img(img_fname)
   elif source == 2:
     print('\nTaking a picture with the webcam')
 
@@ -186,66 +187,71 @@ if __name__ == '__main__':
 
       # Space is pressed
       if k % 256 == 32:
-        cv2.imwrite('examples/user_image.png', frame)
-        img = get_img('examples/user_image.png')
+        cv2.imwrite(user_image_path, frame)
+        img = get_img(user_image_path)
         print('Picture taken!')
         break
 
     cam.release()
     cv2.destroyAllWindows()
+  elif source == 3:
+    print('\nLoading image from a file.')
+    img = get_img(input("File path: "))
+  elif source == 4:
+    print('\nLoading last image taken.')
+    img = get_img(user_image_path)
 
   # plt.figure(figsize=(10,6))
   # plt.ion()
   # plt.pause(0.001)
   # choose_thread = ChooseThread()
   # choose_thread.start()
-  job = None
-  while True:
-    clear_screen()
-    print('Source style')
-    print('  [1] La Muse')
-    print('  [2] Rain Princess')
-    print('  [3] The Scream')
-    print('  [4] The Shipwreck of the Minotaur')
-    print('  [5] Udnie')
-    print('  [6] Wave')
-    #print("Selection: ",end="")
-    
-    #thread = threading.Thread(target=input)
-    #thread.start()
-    #plt.ion()
-    #plt.pause(0.001)
-    style_idx = int(input('Selection: '))
-    #thread.join()
-    #style_idx = 4
+  if not img is None:
+      job = None
+      while True:
+        clear_screen()
+        print('Source style')
+        #print("Selection: ",end="")
+        
+        #thread = threading.Thread(target=input)
+        #thread.start()
+        #plt.ion()
+        #plt.pause(0.001)
+        style_idx = show_options(["La Muse",
+        "Rain Princess",
+        "The Scream",
+        "The Shipwreck of the Minotaur",
+        "Wave",
+        "Udnie"])
+        #thread.join()
+        #style_idx = 4
 
-    # Quit if we enter 0
-    if style_idx == 0:
-      if job:
-        job.terminate()
-      break
+        # Quit if we enter 0
+        if style_idx == 0:
+          if job:
+            job.terminate()
+          break
 
-    style_dict = {
-      1: 'ckpts/la_muse.ckpt',
-      2: 'ckpts/rain_princess.ckpt',
-      3: 'ckpts/scream.ckpt',
-      4: 'ckpts/wreck.ckpt',
-      5: 'ckpts/udnie.ckpt',
-      6: 'ckpts/wave.ckpt',
-    }
-    style_ckpt = style_dict[style_idx]
+        style_ckpts = ['ckpts/la_muse.ckpt',
+        'ckpts/rain_princess.ckpt',
+        'ckpts/scream.ckpt',
+        'ckpts/wreck.ckpt',
+        'ckpts/wave.ckpt',
+        'ckpts/udnie.ckpt']
+        
+        style_ckpt = style_ckpts[style_idx-1]
 
-    styled_img = transfer(img, style_ckpt)[0]
-    styled_img = np.clip(styled_img, 0, 255).astype(np.uint8)
-    if job:
-        job.terminate()
-    job = multiprocessing.Process(target=show_image,args=(styled_img,))
-    job.start()
-    #show_image(styled_img)
-    # plt.ion()
-    # plt.show()
+        styled_img = transfer(img, style_ckpt)[0]
+        styled_img = np.clip(styled_img, 0, 255).astype(np.uint8)
+        if job:
+            job.terminate()
+        job = multiprocessing.Process(target=show_image,args=(styled_img,))
+        job.start()
+        #show_image(styled_img)
+        # plt.ion()
+        # plt.show()
 
-    # plt.show()
-    # print("Shown")
-    # plt.pause(0.001)
-    # plt.show(block=False)
+        # plt.show()
+        # print("Shown")
+        # plt.pause(0.001)
+        # plt.show(block=False)
