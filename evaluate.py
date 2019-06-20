@@ -150,6 +150,10 @@ def show_options(options, first=1, prompt="Selection: "):
     for index, option in enumerate(options):
         print("  [{0}] {1}".format(index+first, option))
     return int(input(prompt))
+    
+def style_image(img, ckpt):
+    styled_img = transfer(img, ckpt)[0]
+    return np.clip(styled_img, 0, 255).astype(np.uint8)
 
 # After each image, have the option of saving the image for email later.
 # Also have the option to do a different style
@@ -207,6 +211,12 @@ if __name__ == '__main__':
   # choose_thread = ChooseThread()
   # choose_thread.start()
   if not img is None:
+      style_ckpts = ['ckpts/la_muse.ckpt',
+        'ckpts/rain_princess.ckpt',
+        'ckpts/scream.ckpt',
+        'ckpts/wreck.ckpt',
+        'ckpts/wave.ckpt',
+        'ckpts/udnie.ckpt']
       job = None
       while True:
         clear_screen()
@@ -230,19 +240,23 @@ if __name__ == '__main__':
         if style_idx == 0:
           if job:
             job.terminate()
+          save_option = show_options(["Quit","Save styles."],first=0)
+          if save_option == 1:
+            # Save all styles.
+            out_dir = input("Output directory: ")
+            try:
+                os.mkdir(out_dir)
+            except FileExistsError:
+                pass
+            for style_index, style_ckpt in enumerate(style_ckpts):
+                styled_img = style_image(img, style_ckpt)
+                save_img(os.path.join(out_dir,"style{0}.png".format(style_index)),styled_img)
           break
-
-        style_ckpts = ['ckpts/la_muse.ckpt',
-        'ckpts/rain_princess.ckpt',
-        'ckpts/scream.ckpt',
-        'ckpts/wreck.ckpt',
-        'ckpts/wave.ckpt',
-        'ckpts/udnie.ckpt']
         
         style_ckpt = style_ckpts[style_idx-1]
+        
+        styled_img = style_image(img, style_ckpt)
 
-        styled_img = transfer(img, style_ckpt)[0]
-        styled_img = np.clip(styled_img, 0, 255).astype(np.uint8)
         if job:
             job.terminate()
         job = multiprocessing.Process(target=show_image,args=(styled_img,))
