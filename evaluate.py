@@ -23,7 +23,16 @@ import time
 
 from screeninfo import get_monitors
 
+import argparse
+
 user_image_path = 'examples/user_image.png'
+style_ckpts = ['ckpts/la_muse.ckpt',
+'ckpts/rain_princess.ckpt',
+'ckpts/scream.ckpt',
+'ckpts/wreck.ckpt',
+'ckpts/wave.ckpt',
+'ckpts/udnie.ckpt',
+'ckpts/fns.ckpt']
 
 # class CallInQTMainLoop(QtCore.QObject):
     # signal = QtCore.pyqtSignal()
@@ -84,7 +93,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
     
    
 
-def transfer(img, style_ckpt):
+def transfer(img, style_ckpt, crop=True):
   g = tf.Graph()
   config = tf.ConfigProto(allow_soft_placement=True)
   config.gpu_options.allow_growth = True
@@ -104,9 +113,10 @@ def transfer(img, style_ckpt):
       w = 2 * h
       img = img[:, my-w//2:my+w//2, :]
 
-    # with warnings.catch_warnings():
-      # warnings.simplefilter("ignore")
-      # # img = resize(img, (400, 800))
+    if not crop:
+        with warnings.catch_warnings():
+          warnings.simplefilter("ignore")
+          img = resize(img, (400, 800))
       
     # print(img.shape)
 
@@ -118,6 +128,8 @@ def transfer(img, style_ckpt):
 
     # Restore style weights
     saver = tf.train.Saver()
+    if style_ckpt == "ckpts/fns.ckpt":
+        tf.train.import_meta_graph(style_ckpt + ".meta")
     saver.restore(sess, style_ckpt)
 
     styled_img_ = sess.run(styled_img, feed_dict={img_holder: img})
@@ -151,8 +163,8 @@ def show_options(options, first=1, prompt="Selection: "):
         print("  [{0}] {1}".format(index+first, option))
     return int(input(prompt))
     
-def style_image(img, ckpt):
-    styled_img = transfer(img, ckpt)[0]
+def style_image(img, ckpt, crop=True):
+    styled_img = transfer(img, ckpt, crop)[0]
     return np.clip(styled_img, 0, 255).astype(np.uint8)
 
 # After each image, have the option of saving the image for email later.
@@ -161,6 +173,10 @@ def style_image(img, ckpt):
 # After the person leaves, then have the option of resetting
 if __name__ == '__main__':
   #os.system('clear')
+  parser = argparse.ArgumentParser()
+  parser.add_argument("--camera","-c",type=int,help="camera to use",default=0,required=False)
+  parser.add_argument("--no-crop",help="don't crop images",action="store_true",required=False)
+  args = parser.parse_args()
   clear_screen()
   img = None
   print('Source image:')
@@ -175,9 +191,9 @@ if __name__ == '__main__':
         img_fname = example_images[example_idx-1]
         img = get_img(img_fname)
   elif source == 2:
-    print('\nTaking a picture with the webcam')
+    print('\nTaking a picture with webcam {0}.'.format(args.camera))
 
-    cam = cv2.VideoCapture(0)
+    cam = cv2.VideoCapture(args.camera)
     cam.set(3, 1280)
     cam.set(4, 720)
     cv2.namedWindow('camera')
@@ -211,12 +227,6 @@ if __name__ == '__main__':
   # choose_thread = ChooseThread()
   # choose_thread.start()
   if not img is None:
-      style_ckpts = ['ckpts/la_muse.ckpt',
-        'ckpts/rain_princess.ckpt',
-        'ckpts/scream.ckpt',
-        'ckpts/wreck.ckpt',
-        'ckpts/wave.ckpt',
-        'ckpts/udnie.ckpt']
       job = None
       while True:
         clear_screen()
@@ -255,7 +265,7 @@ if __name__ == '__main__':
         
         style_ckpt = style_ckpts[style_idx-1]
         
-        styled_img = style_image(img, style_ckpt)
+        styled_img = style_image(img, style_ckpt, not args.no_crop)
 
         if job:
             job.terminate()
