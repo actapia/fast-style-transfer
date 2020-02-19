@@ -13,6 +13,7 @@ import numpy as np
 import tensorflow as tf
 from utils import save_img, get_img
 from skimage.transform import resize
+import matplotlib
 import matplotlib.pyplot as plt
 
 import threading, multiprocessing
@@ -33,6 +34,8 @@ style_ckpts = ['ckpts/la_muse.ckpt',
 'ckpts/wave.ckpt',
 'ckpts/udnie.ckpt',
 'ckpts/fns.ckpt']
+
+default_backend = "Qt5Agg"
 
 # class CallInQTMainLoop(QtCore.QObject):
     # signal = QtCore.pyqtSignal()
@@ -138,6 +141,7 @@ def transfer(img, style_ckpt, crop=True):
   
  
 def show_image(styled_img):
+    matplotlib.use(default_backend)
     plt.ion()
     plt.clf()
     #plt.pause(0.001)
@@ -178,6 +182,9 @@ if __name__ == '__main__':
   parser.add_argument("--no-crop",help="don't crop images",action="store_true",required=False)
   args = parser.parse_args()
   clear_screen()
+  multiprocessing.set_start_method("spawn")
+  if matplotlib.get_backend() != default_backend:
+      print("Warning: Will use {0} as matplotlib backend.".format(default_backend))
   img = None
   print('Source image:')
   source = show_options(["Choose from examples","Take your own","Load from file","Load last image from webcam"])
@@ -200,11 +207,12 @@ if __name__ == '__main__':
 
     while True:
       ret, frame = cam.read()
+      cv2.startWindowThread()
       cv2.imshow('camera', frame)
       if not ret:
         break
       k = cv2.waitKey(1)
-
+      
       # Space is pressed
       if k % 256 == 32:
         cv2.imwrite(user_image_path, frame)
@@ -214,6 +222,7 @@ if __name__ == '__main__':
 
     cam.release()
     cv2.destroyAllWindows()
+    cv2.waitKey(1) # Needed to actually destroy windows in macOS, apparently.
   elif source == 3:
     print('\nLoading image from a file.')
     img = get_img(input("File path: "))
