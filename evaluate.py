@@ -37,65 +37,9 @@ style_ckpts = ['ckpts/la_muse.ckpt',
 
 default_backend = "Qt5Agg"
 
-# class CallInQTMainLoop(QtCore.QObject):
-    # signal = QtCore.pyqtSignal()
-
-    # def __init__(self, func):
-        # super().__init__()
-        # self.func = func
-        # self.args = list()
-        # self.kwargs = dict()
-        # self.signal.connect(self._target)
-
-    # def _target(self):
-        # self.func(*self.args, **self.kwargs)
-
-    # def __call__(self, *args, **kwargs):
-        # self.args = args
-        # self.kwargs = kwargs
-        # self.signal.emit()
-
 # Disable tensorflow debugging information
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-    
-# class ChooseThread(threading.Thread):
-    # def __init__(self):
-        # threading.Thread.__init__(self)
-        
-    # def run(self):
-        # while True:
-          # os.system('clear')
-          # print('Source style')
-          # print('  [1] La Muse')
-          # print('  [2] Rain Princess')
-          # print('  [3] The Scream')
-          # print('  [4] The Shipwreck of the Minotaur')
-          # print('  [5] Udnie')
-          # print('  [6] Wave')
-      
-          # style_idx = int(input('Selection: '))
-
-          # # Quit if we enter 0
-          # if style_idx == 0:
-            # break
-
-          # style_dict = {
-            # 1: 'ckpts/la_muse.ckpt',
-            # 2: 'ckpts/rain_princess.ckpt',
-            # 3: 'ckpts/scream.ckpt',
-            # 4: 'ckpts/wreck.ckpt',
-            # 5: 'ckpts/udnie.ckpt',
-            # 6: 'ckpts/wave.ckpt',
-          # }
-          # style_ckpt = style_dict[style_idx]
-
-          # styled_img = transfer(img, style_ckpt)[0]
-          # styled_img = np.clip(styled_img, 0, 255).astype(np.uint8)
-          # show_image(styled_img)
-        
-    
-   
-
+       
 def transfer(img, style_ckpt, crop=True):
   g = tf.Graph()
   config = tf.ConfigProto(allow_soft_placement=True)
@@ -119,9 +63,7 @@ def transfer(img, style_ckpt, crop=True):
     if not crop:
         with warnings.catch_warnings():
           warnings.simplefilter("ignore")
-          img = resize(img, (400, 800))
-      
-    # print(img.shape)
+          img = resize(img, (400, 800))      
 
     # Build inference network
     img = np.reshape(img, (1,) + img.shape)
@@ -144,11 +86,8 @@ def show_image(styled_img):
     matplotlib.use(default_backend)
     plt.ion()
     plt.clf()
-    #plt.pause(0.001)
     plt.imshow(styled_img)
-    #plt.pause(0.001)
     plt.axis('off')
-    #plt.pause(0.001)
     plt.tight_layout()
     plt.pause(0.001)
     f = plt.gcf()
@@ -176,7 +115,6 @@ def style_image(img, ckpt, crop=True):
 #
 # After the person leaves, then have the option of resetting
 if __name__ == '__main__':
-  #os.system('clear')
   parser = argparse.ArgumentParser()
   parser.add_argument("--camera","-c",type=int,help="camera to use",default=0,required=False)
   parser.add_argument("--no-crop",help="don't crop images",action="store_true",required=False)
@@ -230,30 +168,18 @@ if __name__ == '__main__':
     print('\nLoading last image taken.')
     img = get_img(user_image_path)
 
-  # plt.figure(figsize=(10,6))
-  # plt.ion()
-  # plt.pause(0.001)
-  # choose_thread = ChooseThread()
-  # choose_thread.start()
   if not img is None:
       job = None
       while True:
         clear_screen()
         print('Source style')
-        #print("Selection: ",end="")
         
-        #thread = threading.Thread(target=input)
-        #thread.start()
-        #plt.ion()
-        #plt.pause(0.001)
         style_idx = show_options(["La Muse",
         "Rain Princess",
         "The Scream",
         "The Shipwreck of the Minotaur",
         "Wave",
         "Udnie"])
-        #thread.join()
-        #style_idx = 4
 
         # Quit if we enter 0
         if style_idx == 0:
@@ -280,11 +206,3 @@ if __name__ == '__main__':
             job.terminate()
         job = multiprocessing.Process(target=show_image,args=(styled_img,))
         job.start()
-        #show_image(styled_img)
-        # plt.ion()
-        # plt.show()
-
-        # plt.show()
-        # print("Shown")
-        # plt.pause(0.001)
-        # plt.show(block=False)
